@@ -5,9 +5,6 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: supertokens-admin-app
-    depends_on:
-      supertokens-core:
-        condition: service_healthy
     ports:
       - "8956:3000"
     environment:
