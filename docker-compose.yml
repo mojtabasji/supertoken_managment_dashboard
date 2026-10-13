@@ -9,21 +9,22 @@ services:
       - "8956:3000"
     environment:
       # SuperTokens Core connection
-      SUPERTOKENS_CONNECTION_URI: "http://supertokens-core:3567"
-      SUPERTOKENS_API_KEY: "core-api-key-change-me"
+      SUPERTOKENS_CONNECTION_URI: "${SUPERTOKENS_CONNECTION_URI}"
+        
+      SUPERTOKENS_API_KEY: "${SUPERTOKENS_API_KEY}"
       
       # Admin credentials - MUST change in production
-      ADMIN_EMAILS: "admin@example.com"
-      ADMIN_PASSWORD: "change-me-strong-password-min-12-chars"
+      ADMIN_EMAILS: "${ADMIN_EMAILS}"
+      ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
       
       # Session secret - MUST be at least 32 chars
-      SESSION_SECRET: "change-me-this-should-be-at-least-32-characters-long"
+      SESSION_SECRET: "${SESSION_SECRET}"
       
       # App base URL
-      APP_BASE_URL: "http://localhost:3000"
+      APP_BASE_URL: "${APP_BASE_URL}"
       
       # Audit DB path (inside container)
-      AUDIT_DB_PATH: "data/audit.db"
+      AUDIT_DB_PATH: "${AUDIT_DB_PATH}"
       
       NODE_ENV: production
     volumes:
