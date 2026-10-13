@@ -2,6 +2,18 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Getting Started
 
+## Option 1: Docker Compose (Recommended)
+
+The easiest way to run the full stack (app, SuperTokens Core, PostgreSQL) is with Docker Compose:
+
+```bash
+docker compose up -d
+```
+
+Access the app at [http://localhost:3000](http://localhost:3000). See [README-DOCKER.md](./README-DOCKER.md) for detailed Docker instructions.
+
+## Option 2: Local Development
+
 First, run the development server:
 
 ```bash

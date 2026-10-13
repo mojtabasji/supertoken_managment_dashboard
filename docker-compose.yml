@@ -1,0 +1,37 @@
+services:
+  # Admin Portal App
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: supertokens-admin-app
+    depends_on:
+      supertokens-core:
+        condition: service_healthy
+    ports:
+      - "8956:3000"
+    environment:
+      # SuperTokens Core connection
+      SUPERTOKENS_CONNECTION_URI: "http://supertokens-core:3567"
+      SUPERTOKENS_API_KEY: "core-api-key-change-me"
+      
+      # Admin credentials - MUST change in production
+      ADMIN_EMAILS: "admin@example.com"
+      ADMIN_PASSWORD: "change-me-strong-password-min-12-chars"
+      
+      # Session secret - MUST be at least 32 chars
+      SESSION_SECRET: "change-me-this-should-be-at-least-32-characters-long"
+      
+      # App base URL
+      APP_BASE_URL: "http://localhost:3000"
+      
+      # Audit DB path (inside container)
+      AUDIT_DB_PATH: "data/audit.db"
+      
+      NODE_ENV: production
+    volumes:
+      - audit_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  audit_data:

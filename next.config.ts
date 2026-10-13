@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
   // "Please call the supertokens.init function before using SuperTokens".
   // Keeping it out makes Turbopack bundle every import as one copy.
   serverExternalPackages: ["better-sqlite3"],
+  output: "standalone",
   turbopack: {
     rules: {
       "*.css": {
