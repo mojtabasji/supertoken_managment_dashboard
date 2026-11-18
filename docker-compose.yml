@@ -10,26 +10,36 @@ services:
     environment:
       # SuperTokens Core connection
       SUPERTOKENS_CONNECTION_URI: "${SUPERTOKENS_CONNECTION_URI}"
-        
+
       SUPERTOKENS_API_KEY: "${SUPERTOKENS_API_KEY}"
-      
+
       # Admin credentials - MUST change in production
       ADMIN_EMAILS: "${ADMIN_EMAILS}"
       ADMIN_PASSWORD: "${ADMIN_PASSWORD}"
-      
+
       # Session secret - MUST be at least 32 chars
       SESSION_SECRET: "${SESSION_SECRET}"
-      
+
       # App base URL
       APP_BASE_URL: "${APP_BASE_URL}"
-      
+
       # Audit DB path (inside container)
       AUDIT_DB_PATH: "${AUDIT_DB_PATH}"
-      
+
       NODE_ENV: production
     volumes:
       - audit_data:/app/data
     restart: unless-stopped
+    healthcheck:
+      test:
+        - "CMD"
+        - "node"
+        - "-e"
+        - "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   audit_data:
