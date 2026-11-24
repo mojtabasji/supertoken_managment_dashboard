@@ -60,19 +60,6 @@ export default async function HealthPage(): Promise<React.ReactElement> {
           </div>
         </div>
 
-        {core.reachable && (
-          <dl className="mt-3 grid grid-cols-2 gap-3">
-            <div className="rounded-lg border border-slate-200 px-4 py-3">
-              <dt className="text-xs text-slate-500">Total users</dt>
-              <dd className="mt-1 font-semibold text-slate-900">{core.userCount ?? "—"}</dd>
-            </div>
-            <div className="rounded-lg border border-slate-200 px-4 py-3">
-              <dt className="text-xs text-slate-500">Core status</dt>
-              <dd className="mt-1 font-semibold text-slate-900">Reachable</dd>
-            </div>
-          </dl>
-        )}
-
         <p className="mt-5 text-xs text-slate-400">Checked: {new Date().toISOString()}</p>
       </section>
     </main>

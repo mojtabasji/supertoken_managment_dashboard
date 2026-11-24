@@ -65,13 +65,16 @@ export type UserListDto = {
 
 export type CoreHealthDto = {
   reachable: boolean;
-  /** Total user count across recipes; only present when reachable. */
-  userCount?: number;
-  /** Per-recipe user counts; only present when reachable. */
-  recipeCounts?: Record<string, number>;
+  /** Round-trip time of the Core probe; present on both success and failure. */
   latencyMs?: number;
   /** Sanitized failure category — never contains secrets or raw SDK errors. */
   errorCategory?: "timeout" | "unauthorized" | "unreachable";
+};
+
+/** User totals from an explicit Core query; deliberately not part of health. */
+export type UserCountsDto = {
+  total: number;
+  byRecipe: Record<string, number>;
 };
 
 export type OverviewDto = {

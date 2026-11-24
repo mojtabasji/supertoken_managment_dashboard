@@ -58,10 +58,24 @@ Revoke the current admin session and clear the cookie.
 
 ## GET /api/admin/health
 
-Report admin service status and SuperTokens Core connectivity without exposing secrets.
+Report SuperTokens Core connectivity without exposing secrets. Designed to be polled by monitors: the probe calls the Core's `/apiversion` endpoint (with the API key, when configured), so it verifies reachability and credentials without querying any user data. The public `/health` page renders the same probe.
+
+- **Auth:** admin session required (the `/health` page calls the probe server-side).
+- **Request body:** none.
+- **Success:** `200` → `data: { reachable: boolean, latencyMs: number, errorCategory?: "timeout" | "unauthorized" | "unreachable" }`.
+  - A *reachable* Core always returns `200` with `reachable: true`; an unreachable or misconfigured Core returns `200` with `reachable: false` plus a sanitized `errorCategory`.
+- **Errors:** `401 unauthorized` (missing/expired admin session).
+- **Security:** never includes the Core URL, API key, response body, or raw error text.
+
+## GET /api/admin/users/count
+
+Total and per-recipe user counts. Kept separate from the health endpoint so connectivity probes never trigger user queries.
 
 - **Auth:** admin session required.
-- **Success:** `200` → `data: { core: "up" | "down", checkedAt: string }`. Never includes the Core URL, API key, or raw error text.
+- **Request body:** none.
+- **Success:** `200` → `data: { total: number, byRecipe: { [recipeId]: number } }`, where `recipeId` is one of `emailpassword`, `thirdparty`, `passwordless`.
+- **Errors:** `401 unauthorized`, `502 core_unavailable` (message carries the sanitized `timeout` / `unauthorized` / `unreachable` category).
+- **Cost:** four Core `GET /users/count` requests (one total, one per recipe); call it when the numbers are actually displayed, not on every page load or probe.
 
 ## GET /api/admin/users
 

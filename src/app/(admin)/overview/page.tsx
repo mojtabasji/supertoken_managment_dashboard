@@ -7,12 +7,12 @@ import { Card, EmptyState, ErrorState, SkeletonRows, Spinner } from "@/component
 import { RecipeBadge, StatusBadge } from "@/components/feedback/StatusBadge";
 import { errorMessageFor, handleAuthError, apiGet } from "@/lib/client/api";
 import { formatDateTime } from "@/lib/format";
-import type { AdminUserSummaryDto, CoreHealthDto, UserListDto } from "@/types/api";
+import type { AdminUserSummaryDto, CoreHealthDto, UserCountsDto, UserListDto } from "@/types/api";
 
 type OverviewState =
   | { kind: "loading" }
   | { kind: "error"; message: string }
-  | { kind: "ready"; core: CoreHealthDto; recentUsers: AdminUserSummaryDto[] };
+  | { kind: "ready"; core: CoreHealthDto; counts: UserCountsDto; recentUsers: AdminUserSummaryDto[] };
 
 export default function OverviewPage(): React.ReactElement {
   const [state, setState] = useState<OverviewState>({ kind: "loading" });
@@ -21,12 +21,13 @@ export default function OverviewPage(): React.ReactElement {
     let cancelled = false;
     void (async () => {
       try {
-        const [core, recent] = await Promise.all([
+        const [core, counts, recent] = await Promise.all([
           apiGet<CoreHealthDto>("/api/admin/health"),
+          apiGet<UserCountsDto>("/api/admin/users/count"),
           apiGet<UserListDto>("/api/admin/users?limit=5&order=DESC"),
         ]);
         if (!cancelled) {
-          setState({ kind: "ready", core, recentUsers: recent.users });
+          setState({ kind: "ready", core, counts, recentUsers: recent.users });
         }
       } catch (error) {
         if (handleAuthError(error) || cancelled) {
@@ -40,28 +41,7 @@ export default function OverviewPage(): React.ReactElement {
     };
   }, []);
 
-  useEffect(() => {
-    let cancel = false;
-    void (async () => {
-      try {
-        const [core, recent] = await Promise.all([
-          apiGet<CoreHealthDto>("/api/admin/health"),
-          apiGet<UserListDto>("/api/admin/users?limit=5&order=DESC"),
-        ]);
-        if (!cancel) {
-          setState({ kind: "ready", core, recentUsers: recent.users });
-        }
-      } catch (error) {
-        if (handleAuthError(error) || cancel) {
-          return;
-        }
-        setState({ kind: "error", message: errorMessageFor(error) });
-      }
-    })();
-    return () => {
-      cancel = true;
-    };
-  }, []);
+  useEffect(() => load(), [load]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
@@ -96,9 +76,9 @@ export default function OverviewPage(): React.ReactElement {
                   <dl className="grid grid-cols-2 gap-2 text-sm">
                     <div className="rounded-md bg-slate-50 px-3 py-2">
                       <dt className="text-xs text-slate-500">Total users</dt>
-                      <dd className="font-semibold text-slate-900">{state.core.userCount ?? "—"}</dd>
+                      <dd className="font-semibold text-slate-900">{state.counts.total}</dd>
                     </div>
-                    {Object.entries(state.core.recipeCounts ?? {}).map(([recipeId, count]) => (
+                    {Object.entries(state.counts.byRecipe).map(([recipeId, count]) => (
                       <div key={recipeId} className="rounded-md bg-slate-50 px-3 py-2">
                         <dt className="text-xs text-slate-500">
                           <RecipeBadge recipeId={recipeId} />

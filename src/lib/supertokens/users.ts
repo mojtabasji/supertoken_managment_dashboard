@@ -19,7 +19,10 @@ import type {
   CoreHealthDto,
   RecipeId,
   UserAccountDto,
+  UserCountsDto,
 } from "@/types/api";
+
+import { getEnv } from "@/lib/config/env";
 
 import { initSuperTokens } from "./client";
 
@@ -44,6 +47,8 @@ import { initSuperTokens } from "./client";
  */
 
 const CORE_CALL_TIMEOUT_MS = 8000;
+/** Health probes must stay cheap: they are hit by monitors, not by users. */
+const CORE_PROBE_TIMEOUT_MS = 3000;
 
 class CoreTimeoutError extends Error {
   constructor() {
@@ -155,7 +160,7 @@ export async function listUsers(params: ListUsersParams): Promise<ListUsersResul
   };
 }
 
-export async function getUserCounts(): Promise<{ total: number; byRecipe: Record<string, number> }> {
+export async function getUserCounts(): Promise<UserCountsDto> {
   initSuperTokens();
   const recipeIds: RecipeId[] = ["emailpassword", "thirdparty", "passwordless"];
   const [total, ...perRecipe] = await withTimeout(
@@ -376,21 +381,33 @@ export async function lookupUsers({ query }: LookupQuery): Promise<AdminUserSumm
 export type CoreHealth = CoreHealthDto & { reachable: true } | CoreHealthDto & { reachable: false };
 
 /**
- * Core connectivity probe: resolves counts only when the Core answers.
- * Returns a sanitized failure category instead of raw SDK errors so nothing
- * internal (URLs, keys, stack traces) can reach the client.
+ * Core connectivity probe.
+ *
+ * Calls the Core's `/apiversion` endpoint rather than a data endpoint: it
+ * verifies reachability and the API key without reading any user data, so a
+ * monitor polling this path costs the Core one trivial request instead of four
+ * `users/count` queries. Returns a sanitized failure category instead of raw
+ * SDK/network errors so nothing internal (URLs, keys, stack traces) reaches the
+ * client.
  */
 export async function getCoreHealth(): Promise<CoreHealth> {
-  initSuperTokens();
+  const { supertokensConnectionUri, supertokensApiKey } = getEnv();
   const started = Date.now();
   try {
-    const { total, byRecipe } = await getUserCounts();
-    return {
-      reachable: true,
-      userCount: total,
-      recipeCounts: byRecipe,
-      latencyMs: Date.now() - started,
-    };
+    const response = await fetch(`${supertokensConnectionUri}/apiversion`, {
+      method: "GET",
+      headers: supertokensApiKey !== undefined ? { "api-key": supertokensApiKey } : {},
+      signal: AbortSignal.timeout(CORE_PROBE_TIMEOUT_MS),
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return {
+        reachable: false,
+        errorCategory: response.status === 401 || response.status === 403 ? "unauthorized" : "unreachable",
+        latencyMs: Date.now() - started,
+      };
+    }
+    return { reachable: true, latencyMs: Date.now() - started };
   } catch (err) {
     return {
       reachable: false,
@@ -403,6 +420,10 @@ export async function getCoreHealth(): Promise<CoreHealth> {
 /** Maps SDK/network errors to a small, sanitized category set. */
 export function classifyCoreError(err: unknown): "timeout" | "unauthorized" | "unreachable" {
   if (err instanceof CoreTimeoutError) {
+    return "timeout";
+  }
+  if (err instanceof Error && (err.name === "TimeoutError" || err.name === "AbortError")) {
+    // AbortSignal.timeout() and fetch aborts surface as DOMException names.
     return "timeout";
   }
   const message = err instanceof Error ? err.message : "";
